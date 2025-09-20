@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TasmoCompiler - Compilador Web do Tasmota</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/lucide.min.js"></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .step {
+            transition: all 0.3s ease;
+        }
+        .step.active {
+            transform: scale(1.02);
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .compiling {
+            animation: pulse 2s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="min-h-screen gradient-bg">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-white mb-4">
+                <i data-lucide="cpu" class="inline-block w-8 h-8 mr-2"></i>
+                TasmoCompiler
+            </h1>
+            <p class="text-white/80 text-lg">Interface Web para Compilação Customizada do Firmware Tasmota</p>
+        </div>
+
+        <!-- Progress Steps -->
+        <div class="flex justify-center mb-8">
+            <div class="flex space-x-4">
+                <div class="step glass rounded-lg px-4 py-2 text-white active" data-step="1">
+                    <i data-lucide="settings" class="w-5 h-5 inline mr-2"></i>1. Configuração
+                </div>
+                <div class="step glass rounded-lg px-4 py-2 text-white/60" data-step="2">
+                    <i data-lucide="wifi" class="w-5 h-5 inline mr-2"></i>2. Rede
+                </div>
+                <div class="step glass rounded-lg px-4 py-2 text-white/60" data-step="3">
+                    <i data-lucide="code" class="w-5 h-5 inline mr-2"></i>3. Custom
+                </div>
+                <div class="step glass rounded-lg px-4 py-2 text-white/60" data-step="4">
+                    <i data-lucide="play" class="w-5 h-5 inline mr-2"></i>4. Compilar
+                </div>
+                <div class="step glass rounded-lg px-4 py-2 text-white/60" data-step="5">
+                    <i data-lucide="download" class="w-5 h-5 inline mr-2"></i>5. Download
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="max-w-4xl mx-auto">
+            <!-- Step 1: Board and Features Configuration -->
+            <div id="step1" class="step-content glass rounded-xl p-8 mb-6">
+                <h2 class="text-2xl font-semibold text-white mb-6">
+                    <i data-lucide="settings" class="w-6 h-6 inline mr-2"></i>
+                    Configuração da Placa e Recursos
+                </h2>
+                
+                <div class="grid md:grid-cols-2 gap-6">
+                    <!-- Board Selection -->
+                    <div>
+                        <label class="block text-white font-semibold mb-3">Tipo de Placa:</label>
+                        <select id="boardType" class="w-full p-3 rounded-lg bg-white/10 text-white border border-white/20 focus:border-purple-400 focus:outline-none">
+                            <option value="esp8266">ESP8266 (NodeMCU, Wemos D1, etc.)</option>
+                            <option value="esp32">ESP32 (DevKit, WROVER, etc.)</option>
+                            <option value="esp32c3">ESP32-C3</option>
+                            <option value="esp32s2">ESP32-S2</option>
+                            <option value="esp32s3">ESP32-S3</option>
+                        </select>
+                    </div>
+
+                    <!-- Tasmota Version -->
+                    <div>
+                        <label class="block text-white font-semibold mb-3">Versão do Tasmota:</label>
+                        <select id="tasmoVersion" class="w-full p-3 rounded-lg bg-white/10 text-white border border-white/20 focus:border-purple-400 focus:outline-none">
+                            <option value="development">Development (Mais recente)</option>
+                            <option value="release">Release (Estável)</option>
+                            <option value="13.4.0">v13.4.0</option>
+                            <option value="13.3.0">v13.3.0</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Features Selection -->
+                <div class="mt-8">
+                    <label class="block text-white font-semibold mb-4">Recursos do Tasmota:</label>
+                    <div class="grid md:grid-cols-3 gap-4">
+                        <div class="space-y-3">
+                            <h4 class="text-white/80 font-semibold">Sensores:</h4>
+                            <label class="flex items-center text-white">
+                                <input type="checkbox" class="feature-checkbox mr-2" data-feature="USE_DHT" checked>
+                                DHT (DHT22, AM2301, etc.)
+                            </label>
+                            <label class="flex items-center text-white">
+                                <input type="checkbox" class="feature-checkbox mr-2" data-feature="USE_DS18x20">
+                                DS18x20 (Temperatura)
+                            </label>
+                            <label class="flex items-center text-white">
+                                <input type="checkbox" class="feature-checkbox mr-2" data-feature="USE_BMP">
+                                BMP/BME (Pressão/Umidade)
+                            </label>
+                            <label class="flex items-center text-white">
+                                <input type="checkbox" class="feature-checkbox mr-2" data-feature="USE_SHT">
+                                SHT (SHT30, SHT40)
+                            </label>
+                        </div>
+                        
+                        <div class="space-y-3">
+                            <h4 class="text-white/80 font-semibold">Displays:</h4>
+                            <label class="flex items-center text-white">
+                                <input type="checkbox" class="feature-checkbox mr-2" data-feature="USE_DISPLAY">
+                                Display Support
+                            </label>
+                            <label class="flex items-center text-white">
+                                <input type="checkbox" class="feature-checkbox mr-2" data-feature="USE_SSD1306">
+                                SSD1306 OLED
+                            </label>
+                            <label class="flex items-center text-white">
+                                <input type="checkbox" class="feature-checkbox mr-2" data-feature="USE_ST7735">
+                                ST7735 TFT
+                            </label>
+                            <label class="flex items-center text-white">
+                                <input type="checkbox" class="feature-checkbox mr-2" data-feature="USE_ILI9341">
+                                ILI9341 TFT
+                            </label>
+                        </div>
+
+                        <div class="space-y-3">
+                            <h4 class="text-white/80 font-semibold">Comunicação:</h4>
+                            <label class="flex items-center text-white">
+                                <input type="checkbox" class="feature-checkbox mr-2" data-feature="USE_I2C" checked>
+                                I2C Support
+                            </label>
+                            <label class="flex items-center text-white">
+                                <input type="checkbox" class="feature-checkbox mr-2" data-feature="USE_SPI">
+                                SPI Support
+                            </label>
+                            <label class="flex items-center text-white">
+                                <input type="checkbox" class="feature-checkbox mr-2" data-feature="USE_SERIAL_BRIDGE">
+                                Serial Bridge
+                            </label>
+                            <label class="flex items-center text-white">
+                                <input type="checkbox" class="feature-checkbox mr-2" data-feature="USE_IR_REMOTE">
+                                IR Remote
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Language Selection -->
+                <div class="mt-8">
+                    <label class="block text-white font-semibold mb-3">Idioma da Interface:</label>
+                    <select id="language" class="w-full max-w-md p-3 rounded-lg bg-white/10 text-white border border-white/20 focus:border-purple-400 focus:outline-none">
+                        <option value="pt_BR">Português (Brasil)</option>
+                        <option value="en_GB">English</option>
+                        <option value="de_DE">Deutsch</option>
+                        <option value="es_ES">Español</option>
+                        <option value="fr_FR">Français</option>
+                        <option value="it_IT">Italiano</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Step 2: WiFi Configuration -->
+            <div id="step2" class="step-content glass rounded-xl p-8 mb-6 hidden">
+                <h2 class="text-2xl font-semibold text-white mb-6">
+                    <i data-lucide="wifi" class="w-6 h-6 inline mr-2"></i>
+                    Configuração de Rede
+                </h2>
+
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-white font-semibold mb-3">Nome da Rede WiFi (SSID):</label>
+                        <input type="text" id="wifiSSID" placeholder="Minha_Rede_WiFi" 
+                               class="w-full p-3 rounded-lg bg-white/10 text-white placeholder-white/60 border border-white/20 focus:border-purple-400 focus:outline-none">
+                        <p class="text-white/60 text-sm mt-2">Deixe em branco para configurar depois</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-white font-semibold mb-3">Senha WiFi:</label>
+                        <input type="password" id="wifiPassword" placeholder="senha_wifi" 
+                               class="w-full p-3 rounded-lg bg-white/10 text-white placeholder-white/60 border border-white/20 focus:border-purple-400 focus:outline-none">
+                        <p class="text-white/60 text-sm mt-2">Será salva de forma segura no firmware</p>
+                    </div>
+                </div>
+
+                <!-- MQTT Configuration -->
+                <div class="mt-8">
+                    <h3 class="text-xl font-semibold text-white mb-4">Configuração MQTT (Opcional)</h3>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-white font-semibold mb-2">Servidor MQTT:</label>
+                            <input type="text" id="mqttHost" placeholder="192.168.1.100 ou mqtt.servidor.com" 
+                                   class="w-full p-3 rounded-lg bg-white/10 text-white placeholder-white/60 border border-white/20 focus:border-purple-400 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-white font-semibold mb-2">Porta MQTT:</label>
+                            <input type="number" id="mqttPort" value="1883" 
+                                   class="w-full p-3 rounded-lg bg-white/10 text-white border border-white/20 focus:border-purple-400 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-white font-semibold mb-2">Usuário MQTT:</label>
+                            <input type="text" id="mqttUser" placeholder="usuario_mqtt" 
+                                   class="w-full p-3 rounded-lg bg-white/10 text-white placeholder-white/60 border border-white/20 focus:border-purple-400 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-white font-semibold mb-2">Senha MQTT:</label>
+                            <input type="password" id="mqttPass" placeholder="senha_mqtt" 
+                                   class="w-full p-3 rounded-lg bg-white/10 text-white placeholder-white/60 border border-white/20 focus:border-purple-400 focus:outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Device Name -->
+                <div class="mt-6">
+                    <label class="block text-white font-semibold mb-3">Nome Amigável do Dispositivo:</label>
+                    <input type="text" id="friendlyName" placeholder="Meu Dispositivo Tasmota" 
+                           class="w-full max-w-md p-3 rounded-lg bg-white/10 text-white placeholder-white/60 border border-white/20 focus:border-purple-400 focus:outline-none">
+                    <p class="text-white/60 text-sm mt-2">Nome que aparecerá na interface web</p>
+                </div>
+            </div>
+
+            <!-- Step 3: Custom Parameters -->
+            <div id="step3" class="step-content glass rounded-xl p-8 mb-6 hidden">
+                <h2 class="text-2xl font-semibold text-white mb-6">
+                    <i data-lucide="code" class="w-6 h-6 inline mr-2"></i>
+                    Parâmetros Customizados
+                </h2>
+
+                <div class="mb-6">
+                    <label class="block text-white font-semibold mb-3">Defines Customizados:</label>
+                    <textarea id="customDefines" rows="10" placeholder="// Exemplo de configurações customizadas:
+#define FRIENDLY_NAME &quot;Meu Sensor&quot;
+#define NTP_SERVER1 &quot;pool.ntp.br&quot;
+#define LATITUDE -23.5505
+#define LONGITUDE -46.6333
+#define APP_TIMEZONE 99
+
+// Configurar pinos específicos:
+#define USER_PINS
+#define USER_PIN_DEFINE1 GPIO_DHT22, 2, DHT22_1
+
+// Outras configurações avançadas..."
+                              class="w-full p-4 rounded-lg bg-white/10 text-white placeholder-white/60 border border-white/20 focus:border-purple-400 focus:outline-none font-mono text-sm resize-none"></textarea>
+                    <p class="text-white/60 text-sm mt-2">
+                        Defina configurações avançadas usando sintaxe C/C++. 
+                        <a href="#" onclick="showExamples()" class="text-purple-300 hover:text-purple-200 underline">Ver exemplos</a>
+                    </p>
+                </div>
+
+                <!-- Examples Modal Trigger -->
+                <div class="bg-white/5 rounded-lg p-4">
+                    <h4 class="text-white font-semibold mb-3">Configurações Comuns:</h4>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <button onclick="addExample('ntp')" class="text-left p-3 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-white">
+                            <div class="font-semibold">Servidor NTP</div>
+                            <div class="text-sm text-white/70">Configurar servidor de tempo</div>
+                        </button>
+                        <button onclick="addExample('location')" class="text-left p-3 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-white">
+                            <div class="font-semibold">Localização</div>
+                            <div class="text-sm text-white/70">Latitude/Longitude para timers</div>
+                        </button>
+                        <button onclick="addExample('pins')" class="text-left p-3 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-white">
+                            <div class="font-semibold">Configurar Pinos</div>
+                            <div class="text-sm text-white/70">Definir pinos específicos</div>
+                        </button>
+                        <button onclick="addExample('rules')" class="text-left p-3 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-white">
+                            <div class="font-semibold">Regras Automáticas</div>
+                            <div class="text-sm text-white/70">Configurar regras de automação</div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 4: Compile -->
+            <div id="step4" class="step-content glass rounded-xl p-8 mb-6 hidden">
+                <h2 class="text-2xl font-semibold text-white mb-6">
+                    <i data-lucide="play" class="w-6 h-6 inline mr-2"></i>
+                    Compilação do Firmware
+                </h2>
+
+                <div class="bg-white/5 rounded-lg p-6 mb-6">
+                    <h3 class="text-white font-semibold mb-4">Resumo da Configuração:</h3>
+                    <div id="configSummary" class="text-white/80 space-y-2"></div>
+                </div>
+
+                <div class="text-center">
+                    <button id="compileBtn" onclick="startCompilation()" 
+                            class="bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white font-bold py-4 px-8 rounded-lg transition-all transform hover:scale-105">
+                        <i data-lucide="play" class="w-6 h-6 inline mr-2"></i>
+                        Iniciar Compilação
+                    </button>
+                </div>
+
+                <!-- Compilation Progress -->
+                <div id="compilationProgress" class="hidden mt-8">
+                    <div class="bg-white/10 rounded-lg p-6">
+                        <div class="flex items-center justify-center mb-4">
+                            <i data-lucide="loader" class="w-8 h-8 text-white compiling mr-3"></i>
+                            <span class="text-white font-semibold text-lg">Compilando firmware...</span>
+                        </div>
+                        
+                        <div class="bg-white/10 rounded-full h-4 mb-4">
+                            <div id="progressBar" class="bg-gradient-to-r from-green-400 to-blue-500 h-4 rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                        
+                        <div id="compilationLog" class="bg-black/30 rounded-lg p-4 font-mono text-sm text-green-400 max-h-60 overflow-y-auto">
+                            <div class="mb-2">🔄 Iniciando compilação...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 5: Download -->
+            <div id="step5" class="step-content glass rounded-xl p-8 mb-6 hidden">
+                <h2 class="text-2xl font-semibold text-white mb-6">
+                    <i data-lucide="download" class="w-6 h-6 inline mr-2"></i>
+                    Download dos Arquivos
+                </h2>
+
+                <div class="text-center mb-8">
+                    <div class="inline-flex items-center justify-center w-24 h-24 bg-green-500 rounded-full mb-4">
+                        <i data-lucide="check" class="w-12 h-12 text-white"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-white mb-2">Compilação Concluída!</h3>
+                    <p class="text-white/80">Seu firmware personalizado está pronto para download.</p>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="bg-white/10 rounded-lg p-6 hover:bg-white/20 transition-colors">
+                        <div class="flex items-center mb-4">
+                            <i data-lucide="file" class="w-8 h-8 text-blue-400 mr-3"></i>
+                            <div>
+                                <h4 class="text-white font-semibold">firmware.bin</h4>
+                                <p class="text-white/60 text-sm">Arquivo principal do firmware</p>
+                            </div>
+                        </div>
+                        <button onclick="downloadFile('firmware.bin')" 
+                                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                            <i data-lucide="download" class="w-4 h-4 inline mr-2"></i>
+                            Baixar Firmware
+                        </button>
+                    </div>
+
+                    <div class="bg-white/10 rounded-lg p-6 hover:bg-white/20 transition-colors">
+                        <div class="flex items-center mb-4">
+                            <i data-lucide="file-archive" class="w-8 h-8 text-green-400 mr-3"></i>
+                            <div>
+                                <h4 class="text-white font-semibold">firmware.bin.gz</h4>
+                                <p class="text-white/60 text-sm">Firmware comprimido (menor)</p>
+                            </div>
+                        </div>
+                        <button onclick="downloadFile('firmware.bin.gz')" 
+                                class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                            <i data-lucide="download" class="w-4 h-4 inline mr-2"></i>
+                            Baixar Comprimido
+                        </button>
+                    </div>
+
+                    <div class="bg-white/10 rounded-lg p-6 hover:bg-white/20 transition-colors">
+                        <div class="flex items-center mb-4">
+                            <i data-lucide="settings" class="w-8 h-8 text-purple-400 mr-3"></i>
+                            <div>
+                                <h4 class="text-white font-semibold">platformio_override.ini</h4>
+                                <p class="text-white/60 text-sm">Configurações de compilação</p>
+                            </div>
+                        </div>
+                        <button onclick="downloadFile('platformio_override.ini')" 
+                                class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                            <i data-lucide="download" class="w-4 h-4 inline mr-2"></i>
+                            Baixar Config
+                        </button>
+                    </div>
+
+                    <div class="bg-white/10 rounded-lg p-6 hover:bg-white/20 transition-colors">
+                        <div class="flex items-center mb-4">
+                            <i data-lucide="code" class="w-8 h-8 text-orange-400 mr-3"></i>
+                            <div>
+                                <h4 class="text-white font-semibold">user_config_override.h</h4>
+                                <p class="text-white/60 text-sm">Configurações personalizadas</p>
+                            </div>
+                        </div>
+                        <button onclick="downloadFile('user_config_override.h')" 
+                                class="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                            <i data-lucide="download" class="w-4 h-4 inline mr-2"></i>
+                            Baixar Header
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Instructions -->
+                <div class="mt-8 bg-blue-500/20 rounded-lg p-6">
+                    <h4 class="text-white font-semibold mb-3">
+                        <i data-lucide="info" class="w-5 h-5 inline mr-2"></i>
+                        Como instalar o firmware:
+                    </h4>
+                    <ol class="text-white/80 space-y-2 ml-4">
+                        <li>1. Baixe o arquivo <code class="bg-white/20 px-2 py-1 rounded">firmware.bin</code> ou <code class="bg-white/20 px-2 py-1 rounded">firmware.bin.gz</code></li>
+                        <li>2. Acesse a interface web do seu dispositivo Tasmota</li>
+                        <li>3. Vá em <strong>Firmware Upgrade</strong></li>
+                        <li>4. Selecione o arquivo baixado e clique em <strong>Start upgrade</strong></li>
+                        <li>5. Aguarde a instalação e reinicialização automática</li>
+                    </ol>
+                </div>
+
+                <div class="text-center mt-8">
+                    <button onclick="resetCompiler()" 
+                            class="bg-white/20 hover:bg-white/30 text-white font-bold py-3 px-6 rounded-lg transition-colors">
+                        <i data-lucide="refresh-cw" class="w-5 h-5 inline mr-2"></i>
+                        Compilar Novo Firmware
+                    </button>
+                </div>
+            </div>
+
+            <!-- Navigation Buttons -->
+            <div class="flex justify-between">
+                <button id="prevBtn" onclick="previousStep()" class="bg-white/20 hover:bg-white/30 text-white font-bold py-3 px-6 rounded-lg transition-colors hidden">
+                    <i data-lucide="chevron-left" class="w-5 h-5 inline mr-2"></i>
+                    Anterior
+                </button>
+                <button id="nextBtn" onclick="nextStep()" class="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 px-6 rounded-lg transition-all ml-auto">
+                    Próximo
+                    <i data-lucide="chevron-right" class="w-5 h-5 inline ml-2"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        let currentStep = 1;
+        const totalSteps = 5;
+
+        // Configuration object to store all settings
+        const config = {
+            board: 'esp8266',
+            version: 'development',
+            features: ['USE_DHT', 'USE_I2C'],
+            wifi: {
+                ssid: '',
+                password: ''
+            },
+            mqtt: {
+                host: '',
+                port: 1883,
+                user: '',
+                pass: ''
+            },
+            friendlyName: '',
+            language: 'pt_BR',
+            customDefines: ''
+        };
+
+        // Step navigation functions
+        function nextStep() {
+            if (currentStep < totalSteps) {
+                if (currentStep === 4) {
+                    // Skip to compilation if on step 4
+                    return;
+                }
+                currentStep++;
+                updateUI();
+            }
+        }
+
+        function previousStep() {
+            if (currentStep > 1) {
+                currentStep--;
+                updateUI();
+            }
+        }
+
+        function updateUI() {
+            // Hide all steps
+            document.querySelectorAll('.step-content').forEach(step => {
+                step.classList.add('hidden');
+            });
+
+            // Show current step
+            document.getElementById(`step${currentStep}`).classList.remove('hidden');
+
+            // Update step indicators
+            document.querySelectorAll('.step').forEach((step, index) => {
+                const stepNum = index + 1;
+                if (stepNum <= currentStep) {
+                    step.classList.add('active');
+                    step.classList.remove('text-white/60');
+                    step.classList.add('text-white');
+                } else {
+                    step.classList.remove('active');
+                    step.classList.add('text-white/60');
+                    step.classList.remove('text-white');
+                }
+            });
+
+            // Update navigation buttons
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+
+            if (currentStep === 1) {
+                prevBtn.classList.add('hidden');
+            } else {
+                prevBtn.classList.remove('hidden');
+            }
+
+            if (currentStep === totalSteps || currentStep === 4) {
+                nextBtn.classList.add('hidden');
+            } else {
+                nextBtn.classList.remove('hidden');
+            }
+
+            // Update configuration summary on step 4
+            if (currentStep === 4) {
+                updateConfigSummary();
+            }
+        }
+
+        function updateConfigSummary() {
+            const summary = document.getElementById('configSummary');
+            const features = Array.from(document.querySelectorAll('.feature-checkbox:checked'))
+                .map(cb => cb.dataset.feature);
+            
+            summary.
